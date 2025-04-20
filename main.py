@@ -70,11 +70,14 @@ def read_logs_line_by_line(file_path: str) -> Generator[str, None, None]:
                 yield line
     except FileNotFoundError:
         print(f"Error: File not found - {file_path}", file=sys.stderr)
+        raise
     except IsADirectoryError:
         message = f"Error: Unable to read file {file_path} - Is a directory"
         print(message, file=sys.stderr)
+        raise
     except Exception as e:
         print(f"Error: Unable to read file {file_path} - {e}", file=sys.stderr)
+        raise
 
 
 def process_file_in_parallel(file_path: str, report_class) -> Dict:

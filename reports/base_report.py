@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List
+from typing import Dict, Generator
 
 
 class BaseReport(ABC):
@@ -9,7 +9,7 @@ class BaseReport(ABC):
     """
 
     @abstractmethod
-    def process_logs(self, log_files: List[str]) -> Dict:
+    def process_logs(self, log_files: Generator[str, None, None]) -> Dict:
         """
         Process log files and extract necessary data for the report.
         :param log_files: List of log file paths.

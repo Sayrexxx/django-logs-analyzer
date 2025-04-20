@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 from reports import get_available_reports
+from typing import Generator
 
 
 def validate_file_paths(file_paths):
@@ -53,6 +54,25 @@ def parse_arguments():
     return args
 
 
+def read_logs_line_by_line(file_paths: list) -> Generator[str, None, None]:
+    """
+    Read log files line by line.
+
+    :param file_paths: List of file paths.
+    :yield: Lines from the log files one by one.
+    """
+    for file_path in file_paths:
+        try:
+            with open(file_path, "r") as file:
+                for line in file:
+                    yield line
+        except FileNotFoundError:
+            print(f"Error: File not found - {file_path}", file=sys.stderr)
+        except Exception as e:
+            ex_message = f"Error: Unable to read file {file_path} - {e}"
+            print(ex_message, file=sys.stderr)
+
+
 def main():
     """
     Entry point for the CLI application.
@@ -72,7 +92,8 @@ def main():
     print(f"Generating '{args.report}' report...")
     report_class = available_reports[report_type]
     report = report_class()
-    data = report.process_logs(args.log_files)
+    log_lines = read_logs_line_by_line(args.log_files)
+    data = report.process_logs(log_lines)
     report.generate_report(data)
 
 

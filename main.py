@@ -1,7 +1,7 @@
 import argparse
 import os
 import sys
-from reports.handlers_report import process_logs, generate_report
+from reports import get_available_reports
 
 
 def validate_file_paths(file_paths):
@@ -58,13 +58,22 @@ def main():
     Entry point for the CLI application.
     """
     args = parse_arguments()
+    available_reports = get_available_reports()
+    report_type = args.report.lower()
+
+    if report_type not in available_reports:
+        print(
+            f"Error: Unsupported report type '{args.report}'. "
+            f"Supported types: {', '.join(available_reports.keys())}"
+        )
+        sys.exit(1)
+
     print(f"Processing log files: {', '.join(args.log_files)}")
     print(f"Generating '{args.report}' report...")
-    if args.report == "handlers":
-        data = process_logs(args.log_files)
-        generate_report(data)
-    else:
-        print(f"Error: Unsupported report type '{args.report}'.")
+    report_class = available_reports[report_type]
+    report = report_class()
+    data = report.process_logs(args.log_files)
+    report.generate_report(data)
 
 
 if __name__ == "__main__":

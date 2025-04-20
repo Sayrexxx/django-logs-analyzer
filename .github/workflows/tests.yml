@@ -23,4 +23,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run tests
-        run: pytest --cov=. --cov-report=term
+        run: |
+          mkdir logs
+          touch logs/app1.log
+          touch logs/app2.log
+          pytest --cov=. --cov-report=term

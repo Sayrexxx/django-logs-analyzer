@@ -51,7 +51,7 @@ def generate_report(data: Dict[str, Dict[str, int]]) -> None:
 
     for handler in sorted_handlers:
         counts = data[handler]
-        handler_total = sum(counts[level] for level in LOG_LEVELS)
+        handler_total = sum(counts.get(level, 0) for level in LOG_LEVELS)
         total_requests += handler_total
         print(
             f"{handler:<24}"

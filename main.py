@@ -1,8 +1,11 @@
 import argparse
 import os
 import sys
+from collections import defaultdict
+from multiprocessing import Manager, Pool
+
 from reports import get_available_reports
-from typing import Generator
+from typing import Generator, Dict, DefaultDict, List
 
 
 def validate_file_paths(file_paths):
@@ -54,23 +57,56 @@ def parse_arguments():
     return args
 
 
-def read_logs_line_by_line(file_paths: list) -> Generator[str, None, None]:
+def read_logs_line_by_line(file_path: str) -> Generator[str, None, None]:
     """
-    Read log files line by line.
+    Read a log file line by line.
 
-    :param file_paths: List of file paths.
-    :yield: Lines from the log files one by one.
+    :param file_path: Path to the log file.
+    :yield: Lines from the log file one by one.
     """
-    for file_path in file_paths:
-        try:
-            with open(file_path, "r") as file:
-                for line in file:
-                    yield line
-        except FileNotFoundError:
-            print(f"Error: File not found - {file_path}", file=sys.stderr)
-        except Exception as e:
-            ex_message = f"Error: Unable to read file {file_path} - {e}"
-            print(ex_message, file=sys.stderr)
+    try:
+        with open(file_path, "r") as file:
+            for line in file:
+                yield line
+    except FileNotFoundError:
+        print(f"Error: File not found - {file_path}", file=sys.stderr)
+    except IsADirectoryError:
+        message = f"Error: Unable to read file {file_path} - Is a directory"
+        print(message, file=sys.stderr)
+    except Exception as e:
+        print(f"Error: Unable to read file {file_path} - {e}", file=sys.stderr)
+
+
+def process_file_in_parallel(file_path: str, report_class) -> Dict:
+    """
+    Process a single log file using the given report class.
+
+    :param file_path: Path to the log file.
+    :param report_class: Report class to process the log data.
+    :return: Processed data as a dictionary.
+    """
+    print(f"Process {os.getpid()} is processing file: {file_path}")
+    log_lines = read_logs_line_by_line(file_path)
+    report = report_class()
+    return report.process_logs(log_lines)
+
+
+def merge_results(results: List[Dict]) -> Dict:
+    """
+    Merge results from multiple processed files.
+
+    :param results: List of dictionaries containing processed data.
+    :return: Merged dictionary with combined data.
+    """
+    final_result: DefaultDict[str, DefaultDict[str, int]] = defaultdict(
+        lambda: defaultdict(int)
+    )
+    for result in results:
+        for endpoint, levels in result.items():
+            for level, count in levels.items():
+                final_result[endpoint][level] += count
+
+    return {key: dict(value) for key, value in final_result.items()}
 
 
 def main():
@@ -91,10 +127,16 @@ def main():
     print(f"Processing log files: {', '.join(args.log_files)}")
     print(f"Generating '{args.report}' report...")
     report_class = available_reports[report_type]
+    with Manager():
+        with Pool(processes=4) as pool:
+            results = pool.starmap(
+                process_file_in_parallel,
+                [(file, report_class) for file in args.log_files],
+            )
+
+    final_data = merge_results(results)
     report = report_class()
-    log_lines = read_logs_line_by_line(args.log_files)
-    data = report.process_logs(log_lines)
-    report.generate_report(data)
+    report.generate_report(final_data)
 
 
 if __name__ == "__main__":

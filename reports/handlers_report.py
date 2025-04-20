@@ -1,6 +1,6 @@
 import re
 from collections import defaultdict
-from typing import List, Dict, DefaultDict
+from typing import Generator, Dict, DefaultDict
 from reports.base_report import BaseReport
 
 LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -9,14 +9,17 @@ LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 class HandlersReport(BaseReport):
     """
     Implementation of the 'handlers' report.
+    This report counts requests grouped by API endpoints and log levels.
     """
 
-    def process_logs(self, log_files: List[str]) -> Dict[str, Dict[str, int]]:
+    def process_logs(
+        self, log_lines: Generator[str, None, None]
+    ) -> Dict[str, Dict[str, int]]:
         """
-        Process log files to count requests grouped
-        by API endpoints and log levels.
+        Process log lines to count requests grouped by API
+        endpoints and log levels.
 
-        :param log_files: List of log file paths.
+        :param log_lines: Generator yielding log lines.
         :return: Processed data - a dictionary where keys are API endpoints
         and values are dictionaries of log levels with their respective counts.
         """
@@ -31,14 +34,12 @@ class HandlersReport(BaseReport):
             r"(?P<endpoint>/[^\s]+)"
         )
 
-        for file_path in log_files:
-            with open(file_path, "r") as file:
-                for line in file:
-                    match = log_pattern.match(line)
-                    if match:
-                        level = match.group("level")
-                        endpoint = match.group("endpoint")
-                        report_data[endpoint][level] += 1
+        for line in log_lines:
+            match = log_pattern.search(line)
+            if match:
+                level = match.group("level")
+                endpoint = match.group("endpoint")
+                report_data[endpoint][level] += 1
 
         return {key: dict(value) for key, value in report_data.items()}
 

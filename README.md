@@ -136,6 +136,12 @@ tests/test_reports_init.py .                                                    
 
 ---
 
+## Test Coverage Report Screenshot
+
+![изображение](https://github.com/user-attachments/assets/ff2dc053-3e8e-48dd-885a-4e26afe71c6c)
+
+---
+
 ## Example Log File Format
 Example of a single log entry:
 ```
